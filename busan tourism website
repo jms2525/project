@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>부산 관광 안내</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css" />
+    <style>
+      #cardGrid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1rem;
+      }
+
+      .card {
+        border: 1px solid #ccc;
+        border-radius: 10px;
+        background: white;
+        overflow: hidden;
+        transition: transform 0.2s ease-in-out;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+      }
+
+      .card:hover {
+        transform: scale(1.03);
+      }
+
+      .card img {
+        width: 100%;
+        height: 160px;
+        object-fit: cover;
+      }
+
+      .card-body {
+        padding: 1rem;
+      }
+
+      .card-body h3 {
+        margin-bottom: 0.5rem;
+      }
+
+      #searchInput {
+        margin-top: 1rem;
+        margin-bottom: -0.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="container-fluid">
+      <ul><li><strong>부산 명소</strong></li></ul>
+      <ul>
+        <li><a href="#" onclick="goHome()">홈</a></li>
+        <li><a href="#" onclick="showMyPage()">마이페이지</a></li>
+      </ul>
+    </nav>
+
+    <main class="container">
+      <h2>부산 명소 리스트</h2>
+      <input type="search" id="searchInput" placeholder="명소 검색..." oninput="filterCards()" />
+      <div id="cardGrid" class="grid"></div>
+    </main>
+
+    <section id="detailPage" style="display:none;" class="container">
+      <h2 id="detailTitle"></h2>
+      <p id="placeDescription"></p>
+      <img id="mapImage" src="" alt="" style="width:100%;max-width:500px;" />
+      <p><a id="mapLink" href="#" target="_blank">지도에서 보기</a></p>
+      <button onclick="addToFavorites()">즐겨찾기 추가</button>
+      <button onclick="goHome()">홈으로</button>
+    </section>
+
+    <section id="myPage" style="display:none;" class="container">
+      <h2>나의 즐겨찾기</h2>
+      <ul id="favoriteList"></ul>
+      <button onclick="goHome()">홈으로</button>
+    </section>
+
+    <script>
+      const data = {
+  '광안리': {
+    desc: '광안리 해수욕장은 부산의 대표적인 해변 중 하나로, 광안대교가 만들어내는 아름다운 야경과 함께 로맨틱한 분위기를 자아냅니다. 밤이면 다채로운 조명이 켜진 광안대교가 바다 위에 펼쳐져 사진 명소로 인기입니다. 해변 산책로와 해변가 카페, 조개구이 거리도 즐길 수 있는 힐링 스폿입니다.',
+    img: 'images/beach.jpg'
+  },
+  '해동용궁사': {
+    desc: '부산 기장군에 위치한 해동용궁사는 바다와 절벽이 어우러진 독특한 풍광으로 유명한 해안 사찰입니다. 동해 일출을 감상하기에 최적의 장소이며, 계단을 내려가면 펼쳐지는 바다 위의 전경은 감탄을 자아냅니다. 관음상과 108계단, 소원터널 등 다양한 볼거리와 체험 요소가 있습니다.',
+    img: 'images/temple.jpg'
+  },
+  '서면': {
+    desc: '서면은 부산의 도심지 중 하나로 쇼핑, 맛집, 카페, 유흥 문화가 밀집된 지역입니다. 젊은 층이 모이는 핫플레이스로, 롯데백화점, NC백화점, 영화관, 지하상가 등 다양한 쇼핑 시설이 있으며, 밤이 되면 화려한 거리 조명과 음악이 어우러진 야경이 매력적입니다.',
+    img: 'images/seomyeon.jpg'
+  },
+  '태종대': {
+    desc: '태종대는 영도구에 위치한 해안 절벽 공원으로, 울창한 숲과 함께 해안선을 따라 이어지는 절경이 유명합니다. 다누비 열차를 타고 주요 지점을 둘러볼 수 있으며, 전망대에서 보는 수평선과 바위 절벽은 압권입니다. 맑은 날에는 대마도도 육안으로 보일 수 있습니다.',
+    img: 'images/taejongdae.jpg'
+  },
+  '감천문화마을': {
+    desc: '감천문화마을은 산비탈을 따라 형성된 계단식 마을로, 형형색색의 집들과 예술작품들이 조화를 이루는 독특한 분위기를 자아냅니다. 미로 같은 골목길을 따라 다양한 벽화와 설치미술을 감상할 수 있고, 전통과 현대가 공존하는 문화체험도 가능합니다.',
+    img: 'images/gamcheon.jpg'
+  },
+  '부산타워': {
+    desc: '용두산공원 내에 위치한 부산타워는 높이 120m의 전망탑으로, 부산항과 도심을 한눈에 내려다볼 수 있는 전망 포인트입니다. 타워 아래에는 기념품 가게와 카페, 전시관이 있으며, 야간에는 조명과 함께 낭만적인 분위기를 연출합니다.',
+    img: 'images/busantower.jpg'
+  },
+  '송정 해수욕장': {
+    desc: '송정 해수욕장은 광안리나 해운대보다 덜 붐비면서도, 젊은 서퍼들이 모여드는 서핑 명소로 알려져 있습니다. 백사장이 넓고 완만하며, 서핑 강습소와 해양 스포츠 체험이 풍부합니다. 특히 일몰 시간이 아름다워 사진을 찍기에도 좋은 장소입니다.',
+    img: 'images/songjeong.jpg'
+  },
+  '부네치아': {
+    desc: '‘부산의 베네치아’라 불리는 부네치아는 기장군에 위치한 이국적인 수로 마을입니다. 좁은 수로를 따라 다양한 건축 양식의 건물들이 늘어서 있으며, 수상 자전거나 작은 보트를 탈 수 있습니다. 독특한 골목길과 예쁜 벽화들이 포토 스팟으로 유명합니다.',
+    img: 'images/boonechia.jpg'
+  },
+  'F1963 문화공간': {
+    desc: 'F1963은 오래된 와이어 공장을 리모델링한 복합문화예술 공간으로, 전시, 공연, 서점, 카페 등이 결합된 트렌디한 공간입니다. 공간 자체가 하나의 작품처럼 디자인되어 있으며, 현대적인 감각과 과거 산업유산이 공존하는 감성적인 분위기를 느낄 수 있습니다.',
+    img: 'images/f1963.jpg'
+  },
+  '오륙도 스카이워크': {
+    desc: '오륙도 스카이워크는 절벽 위 투명 유리로 된 산책로로, 바다 위를 걷는 듯한 스릴을 경험할 수 있는 장소입니다. 맑은 날엔 오륙도 앞바다와 광안대교가 시야에 들어오며, 인생샷 명소로 SNS에서도 인기 높은 관광지입니다. 안전하게 걸을 수 있도록 미끄럼 방지 장비도 제공됩니다.',
+    img: 'images/oryukdo.jpg'
+  }
+};
+
+
+      function createCards() {
+  const grid = document.getElementById("cardGrid");
+  grid.innerHTML = '';
+  Object.entries(data).forEach(([name, info]) => {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.onclick = () => showDetail(name);
+
+    const img = document.createElement("img");
+    img.src = info.img;
+    img.alt = name;
+
+    const body = document.createElement("div");
+    body.className = "card-body";
+
+    const title = document.createElement("h3");
+    title.textContent = name;
+
+    body.appendChild(title);
+
+    card.appendChild(img);
+    card.appendChild(body);
+    grid.appendChild(card);
+  });
+}
+
+
+      function showDetail(name) {
+        document.querySelector("main").style.display = "none";
+        document.getElementById("detailPage").style.display = "block";
+        document.getElementById("myPage").style.display = "none";
+        document.getElementById("detailTitle").textContent = name;
+        document.getElementById("placeDescription").textContent = data[name].desc;
+        const img = document.getElementById("mapImage");
+        img.src = data[name].img;
+        img.alt = name;
+        document.getElementById("mapLink").href = `https://www.google.com/maps/search/${encodeURIComponent(name)}`;
+      }
+
+      function addToFavorites() {
+        const place = document.getElementById("detailTitle").textContent;
+        const existingItems = Array.from(document.querySelectorAll("#favoriteList li")).map(li => li.textContent);
+        if (!existingItems.includes(place)) {
+          const li = document.createElement("li");
+          li.textContent = place;
+          document.getElementById("favoriteList").appendChild(li);
+        }
+      }
+
+      function goHome() {
+        document.querySelector("main").style.display = "block";
+        document.getElementById("detailPage").style.display = "none";
+        document.getElementById("myPage").style.display = "none";
+      }
+
+      function showMyPage() {
+        document.querySelector("main").style.display = "none";
+        document.getElementById("detailPage").style.display = "none";
+        document.getElementById("myPage").style.display = "block";
+      }
+
+      function filterCards() {
+        const query = document.getElementById("searchInput").value.toLowerCase();
+        const cards = document.querySelectorAll("#cardGrid .card");
+        cards.forEach(card => {
+          const name = card.querySelector("h3").textContent.toLowerCase();
+          card.style.display = name.includes(query) ? "flex" : "none";
+        });
+      }
+
+      window.onload = createCards;
+    </script>
+  </body>
+</html>
