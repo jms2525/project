@@ -47,12 +47,14 @@
   </head>
   <body>
     <nav class="container-fluid">
-      <ul><li><strong>부산 명소</strong></li></ul>
-      <ul>
-        <li><a href="#" onclick="goHome()">홈</a></li>
-        <li><a href="#" id="authNav" onclick="showAuthPage()">로그인/회원가입</a></li>
-      </ul>
-    </nav>
+  <ul><li><strong>부산 명소</strong></li></ul>
+  <ul>
+    <li><a href="#" onclick="goHome()">홈</a></li>
+    <li><a href="#" onclick="showMyPage()">마이페이지</a></li> <!-- 추가 -->
+    <li><a href="#" id="authNav" onclick="showAuthPage()">로그인/회원가입</a></li>
+  </ul>
+</nav>
+
 
     <main class="container">
       <h2>부산 명소 리스트</h2>
@@ -209,7 +211,13 @@
 
           const title = document.createElement("h3");
           title.textContent = name;
+
+          const avgRating = calculateAverageRating(name);
+          const ratingPara = document.createElement("p");
+          ratingPara.textContent = avgRating ? `평균 평점: ${avgRating}점` : "평점 없음";
+
           body.appendChild(title);
+          body.appendChild(ratingPara);
 
           card.appendChild(img);
           card.appendChild(body);
@@ -390,6 +398,15 @@
         createCards();
         updateNav();
       };
+      function calculateAverageRating(place) {
+  const reviews = JSON.parse(localStorage.getItem("sharedReviews") || "[]")
+    .filter(r => r.place === place);
+  if (reviews.length === 0) return null;
+
+  const sum = reviews.reduce((total, r) => total + r.rating.length, 0); // ⭐ 1점, ⭐⭐ 2점, ...
+  return (sum / reviews.length).toFixed(1); // 소수점 1자리까지
+}
+
     </script>
   </body>
 </html>
